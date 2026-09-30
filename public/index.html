@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ThreatLens | Automated OSINT & Threat Intelligence Aggregator</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            cyber: {
+              bg: '#07090e',
+              surface: '#0d121d',
+              card: '#101726',
+              border: '#1e293b',
+              cyan: '#38bdf8',
+              emerald: '#10b981',
+              amber: '#f59e0b',
+              rose: '#f43f5e',
+              purple: '#a855f7'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Leaflet CSS & JS for Cyber Geolocation Maps -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body class="bg-cyber-bg text-slate-200 antialiased selection:bg-cyan-500/30 selection:text-cyan-300">
+
+  <!-- TOP NAVIGATION / SOC HEADER -->
+  <header class="border-b border-slate-800/80 bg-cyber-surface/90 backdrop-blur-md sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      
+      <!-- Brand Logo -->
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-lg bg-gradient-to-tr from-cyan-600 to-emerald-500 flex items-center justify-center shadow-lg shadow-cyan-500/20 ring-1 ring-cyan-400/40">
+          <i data-lucide="shield-alert" class="w-6 h-6 text-white"></i>
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <span class="font-extrabold text-xl tracking-tight text-white font-mono-code">Threat<span class="text-cyan-400">Lens</span></span>
+            <span class="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-400 border border-cyan-800/60 font-mono-code tracking-wider">v1.0 SOC-EDITION</span>
+          </div>
+          <p class="text-xs text-slate-400 hidden sm:block">Automated OSINT & Multi-Provider Threat Intelligence</p>
+        </div>
+      </div>
+
+      <!-- Right Control Status -->
+      <div class="flex items-center space-x-3">
+        <!-- Cache & System Health Badge -->
+        <button id="healthBtn" class="flex items-center space-x-2 px-3 py-1.5 rounded-md bg-slate-900 border border-slate-700/60 text-xs text-slate-300 hover:border-cyan-500/50 hover:text-white transition-all font-mono-code">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 status-beacon"></span>
+          <span id="healthStatusText">SYSTEM ACTIVE</span>
+        </button>
+
+        <!-- API Status Trigger -->
+        <button id="apiStatusBtn" class="p-2 rounded-md bg-slate-900 border border-slate-700/60 text-slate-400 hover:text-cyan-400 hover:border-cyan-500/50 transition-all" title="View Intelligence Providers Status">
+          <i data-lucide="radio" class="w-4 h-4"></i>
+        </button>
+
+        <!-- GitHub / Docs Link -->
+        <a href="https://github.com" target="_blank" rel="noopener noreferrer" class="p-2 rounded-md bg-slate-900 border border-slate-700/60 text-slate-400 hover:text-white hover:border-slate-600 transition-all" title="ThreatLens Documentation">
+          <i data-lucide="github" class="w-4 h-4"></i>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    
+    <!-- SEARCH & TARGET ANALYZER SECTION -->
+    <section class="glass-panel p-6 sm:p-8 relative overflow-hidden">
+      <!-- Glow background accent -->
+      <div class="absolute -top-24 -right-24 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+      <div class="max-w-4xl mx-auto space-y-4">
+        <div class="text-center sm:text-left space-y-1">
+          <h1 class="text-2xl sm:text-3xl font-bold text-white tracking-tight flex items-center justify-center sm:justify-start gap-2">
+            <span>Threat Intelligence Lookup</span>
+            <span class="text-cyan-400 text-xs font-mono font-normal px-2 py-0.5 bg-cyan-950/60 border border-cyan-800/40 rounded">15m Caching Active</span>
+          </h1>
+          <p class="text-sm text-slate-400">
+            Enter an IPv4 address, domain name, or file hash (MD5/SHA-256). Live auto-detection & defanging supported.
+          </p>
+        </div>
+
+        <!-- Input Bar Form -->
+        <form id="lookupForm" class="space-y-3">
+          <div class="relative flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+            <div class="relative flex-1">
+              <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                <i data-lucide="crosshair" class="w-5 h-5"></i>
+              </div>
+              
+              <input 
+                type="text" 
+                id="targetInput" 
+                placeholder="e.g. 185.220.101.5 or bad-domain[.]com or 275a021bbfb6489e..." 
+                class="w-full pl-11 pr-28 py-3.5 bg-slate-900/90 border border-slate-700 rounded-lg text-white font-mono-code text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-400 transition-all shadow-inner"
+                autocomplete="off"
+                spellcheck="false"
+                required
+              />
+
+              <!-- Live Auto-Detection Pill inside Input -->
+              <div class="absolute inset-y-0 right-0 pr-3 flex items-center">
+                <span id="detectedBadge" class="text-xs px-2.5 py-1 rounded font-mono-code font-medium bg-slate-800 text-slate-400 border border-slate-700 transition-all">
+                  Waiting for input...
+                </span>
+              </div>
+            </div>
+
+            <!-- Submit Button -->
+            <button 
+              type="submit" 
+              id="submitBtn" 
+              class="px-6 py-3.5 bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 text-slate-950 font-semibold rounded-lg shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/30 flex items-center justify-center space-x-2 transition-all font-mono-code tracking-wide uppercase text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <i data-lucide="search" class="w-4 h-4 text-slate-950"></i>
+              <span>Investigate Target</span>
+            </button>
+          </div>
+
+          <!-- Refang Notification Alert (Hidden by default) -->
+          <div id="refangNotice" class="hidden text-xs text-cyan-400 flex items-center gap-1.5 font-mono-code bg-cyan-950/40 px-3 py-1.5 rounded border border-cyan-900/50">
+            <i data-lucide="wrench" class="w-3.5 h-3.5"></i>
+            <span>IOC Auto-Refanged: Defanged characters and URL protocols were normalized for analysis.</span>
+          </div>
+        </form>
+
+        <!-- Quick Demo Targets -->
+        <div class="pt-2 border-t border-slate-800/80 flex flex-wrap items-center gap-2 text-xs">
+          <span class="text-slate-400 font-mono-code flex items-center gap-1">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-400"></i>
+            <span>Quick Samples:</span>
+          </span>
+          <button type="button" data-sample="185.220.101.5" class="sample-btn px-2.5 py-1 rounded bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-rose-400 font-mono-code transition-colors flex items-center gap-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span> Tor Exit IP
+          </button>
+          <button type="button" data-sample="8.8.8.8" class="sample-btn px-2.5 py-1 rounded bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-emerald-400 font-mono-code transition-colors flex items-center gap-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Google DNS (Clean)
+          </button>
+          <button type="button" data-sample="c2-beacon-command.biz" class="sample-btn px-2.5 py-1 rounded bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-rose-400 font-mono-code transition-colors flex items-center gap-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span> C2 Domain
+          </button>
+          <button type="button" data-sample="github.com" class="sample-btn px-2.5 py-1 rounded bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-emerald-400 font-mono-code transition-colors flex items-center gap-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> github.com
+          </button>
+          <button type="button" data-sample="275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f" class="sample-btn px-2.5 py-1 rounded bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-amber-400 font-mono-code transition-colors flex items-center gap-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span> WannaCry (SHA-256)
+          </button>
+          <button type="button" data-sample="44d88612fea8a8f36de82e1278abb02f" class="sample-btn px-2.5 py-1 rounded bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-purple-400 font-mono-code transition-colors flex items-center gap-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-purple-400"></span> EICAR (MD5)
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- SCANNING LOADER (Hidden by default) -->
+    <div id="scannerLoader" class="hidden glass-panel p-10 text-center space-y-6">
+      <div class="flex justify-center">
+        <div class="radar-scanner"></div>
+      </div>
+      <div class="space-y-2">
+        <h3 class="text-lg font-bold text-white font-mono-code">OSINT Telemetry In Progress...</h3>
+        <p id="scanningStage" class="text-sm text-cyan-400 font-mono-code">Querying IP Geolocation & ASN Intelligence...</p>
+        <p class="text-xs text-slate-500">Correlating findings with VirusTotal v3, AbuseIPDB, and IP-API.</p>
+      </div>
+    </div>
+
+    <!-- ERROR BANNER (Hidden by default) -->
+    <div id="errorBanner" class="hidden glass-panel border-rose-500/50 bg-rose-950/20 p-5 rounded-lg flex items-start space-x-3 text-rose-300">
+      <i data-lucide="alert-triangle" class="w-5 h-5 text-rose-400 flex-shrink-0 mt-0.5"></i>
+      <div class="space-y-1">
+        <h4 class="text-sm font-semibold text-rose-200">Lookup Validation Error</h4>
+        <p id="errorMessage" class="text-xs text-rose-300 font-mono-code">Invalid target format provided.</p>
+      </div>
+    </div>
+
+    <!-- RESULTS SECTION (Hidden initially) -->
+    <div id="resultsSection" class="hidden space-y-6">
+      
+      <!-- SUMMARY & RISK SCORE BANNER -->
+      <section class="glass-panel p-6 sm:p-8" id="summaryCard">
+        <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+          
+          <!-- Left: Target details & Threat Verdict -->
+          <div class="space-y-4 flex-1">
+            <!-- Target Pill & Badges -->
+            <div class="flex flex-wrap items-center gap-2">
+              <span id="resultTypeBadge" class="text-xs font-mono-code uppercase px-2.5 py-1 rounded font-bold bg-cyan-950 text-cyan-400 border border-cyan-800">
+                IPV4
+              </span>
+              <span id="resultTarget" class="text-lg sm:text-xl font-bold font-mono-code text-white tracking-wide break-all">
+                185.220.101.5
+              </span>
+              <button id="copyTargetBtn" class="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800 transition-colors" title="Copy Target IOC">
+                <i data-lucide="copy" class="w-4 h-4"></i>
+              </button>
+            </div>
+
+            <!-- Big Verdict Banner -->
+            <div class="flex flex-wrap items-center gap-3">
+              <div id="verdictBadge" class="px-4 py-1.5 rounded-md font-mono-code font-bold text-sm uppercase tracking-wider flex items-center gap-2 bg-rose-950/80 text-rose-300 border border-rose-700/80 shadow-lg shadow-rose-900/20">
+                <span class="w-2.5 h-2.5 rounded-full bg-rose-500 status-beacon"></span>
+                <span id="verdictText">MALICIOUS THREAT</span>
+              </div>
+              <div class="text-xs font-mono-code text-slate-400 flex items-center gap-1.5 bg-slate-900/60 px-3 py-1.5 rounded border border-slate-800">
+                <i data-lucide="gauge" class="w-3.5 h-3.5 text-slate-400"></i>
+                <span>Confidence:</span>
+                <span id="confidenceText" class="text-white font-semibold">HIGH</span>
+              </div>
+              <div id="cacheBadge" class="text-xs font-mono-code text-cyan-400 flex items-center gap-1.5 bg-cyan-950/40 px-3 py-1.5 rounded border border-cyan-900">
+                <i data-lucide="zap" class="w-3.5 h-3.5 text-cyan-400"></i>
+                <span id="cacheText">LIVE SCAN</span>
+              </div>
+            </div>
+
+            <!-- Threat Indicators Bullets -->
+            <div class="space-y-1.5 pt-1">
+              <h4 class="text-xs font-semibold uppercase tracking-wider text-slate-400 font-mono-code flex items-center gap-1.5">
+                <i data-lucide="activity" class="w-3.5 h-3.5 text-cyan-400"></i>
+                <span>Key Threat Indicators:</span>
+              </h4>
+              <ul id="indicatorsList" class="space-y-1 text-xs text-slate-300 font-mono-code">
+                <!-- Injected via JS -->
+              </ul>
+            </div>
+          </div>
+
+          <!-- Right: Circular Risk Score Gauge -->
+          <div class="flex flex-col sm:flex-row items-center gap-6 self-center lg:self-auto bg-slate-900/70 p-5 rounded-xl border border-slate-800">
+            <div class="relative w-32 h-32 flex items-center justify-center">
+              <svg class="w-full h-full" viewBox="0 0 100 100">
+                <circle class="score-circle-bg" stroke-width="8" fill="transparent" r="38" cx="50" cy="50" />
+                <circle id="scoreProgressCircle" class="score-circle-progress" stroke-width="8" stroke-linecap="round" fill="transparent" r="38" cx="50" cy="50" stroke-dasharray="238.76" stroke-dashoffset="238.76" stroke="#f43f5e" />
+              </svg>
+              <div class="absolute flex flex-col items-center justify-center text-center">
+                <span id="overallScoreNumber" class="text-3xl font-extrabold font-mono-code text-white">88</span>
+                <span class="text-[10px] uppercase font-mono-code text-slate-400 tracking-wider">RISK / 100</span>
+              </div>
+            </div>
+
+            <!-- Quick Action Buttons -->
+            <div class="flex flex-col gap-2 w-full sm:w-auto">
+              <button id="exportJsonBtn" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-cyan-400 hover:text-cyan-300 border border-slate-700 hover:border-cyan-500/40 rounded-lg text-xs font-mono-code font-semibold flex items-center justify-center gap-2 transition-all">
+                <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                <span>Export JSON Report</span>
+              </button>
+              <button id="copySummaryBtn" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 rounded-lg text-xs font-mono-code flex items-center justify-center gap-2 transition-all">
+                <i data-lucide="clipboard" class="w-3.5 h-3.5"></i>
+                <span>Copy Summary</span>
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Meta Footer on Summary Card -->
+        <div class="mt-5 pt-4 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-400 font-mono-code">
+          <div class="flex items-center gap-4">
+            <span>Duration: <strong id="scanDurationText" class="text-slate-200">184ms</strong></span>
+            <span>Scanned: <strong id="scanTimestampText" class="text-slate-200">Just now</strong></span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+            <span>Aggregated across 3 Intelligence Pipelines</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- INTEL THREE-GRID: GEOLOCATION | ABUSEIPDB | VIRUSTOTAL -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- CARD 1: GEOLOCATION & NETWORK (IP-API) -->
+        <div class="glass-panel p-5 flex flex-col justify-between space-y-4">
+          <div class="space-y-3">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+              <div class="flex items-center space-x-2">
+                <i data-lucide="globe" class="w-4 h-4 text-cyan-400"></i>
+                <h3 class="font-bold text-sm text-white uppercase font-mono-code">Geolocation & ASN</h3>
+              </div>
+              <span id="geoProviderBadge" class="text-[10px] font-mono-code px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">
+                IP-API (Live)
+              </span>
+            </div>
+
+            <!-- Hash Not Applicable Notice -->
+            <div id="geoNotApplicable" class="hidden py-8 text-center text-xs text-slate-400 font-mono-code">
+              <i data-lucide="info" class="w-6 h-6 mx-auto mb-2 text-slate-500"></i>
+              <span>Geolocation not applicable for cryptographic file hashes.</span>
+            </div>
+
+            <!-- Geolocation Details List -->
+            <div id="geoDetails" class="space-y-2.5 text-xs font-mono-code">
+              <!-- Location Row -->
+              <div class="flex justify-between items-center py-1 border-b border-slate-800/60">
+                <span class="text-slate-400">Country / Region:</span>
+                <span id="geoCountry" class="text-white font-semibold flex items-center gap-1.5 text-right">
+                  <span id="geoFlag">🌐</span>
+                  <span id="geoCountryText">United States</span>
+                </span>
+              </div>
+              <!-- City / Coordinates -->
+              <div class="flex justify-between items-center py-1 border-b border-slate-800/60">
+                <span class="text-slate-400">City / Coordinates:</span>
+                <span id="geoCityCoords" class="text-slate-200 text-right">Ashburn (39.04, -77.48)</span>
+              </div>
+              <!-- ISP -->
+              <div class="flex justify-between items-center py-1 border-b border-slate-800/60">
+                <span class="text-slate-400">ISP / Provider:</span>
+                <span id="geoIsp" class="text-slate-200 text-right truncate max-w-[180px]">DigitalOcean, LLC</span>
+              </div>
+              <!-- ASN -->
+              <div class="flex justify-between items-center py-1 border-b border-slate-800/60">
+                <span class="text-slate-400">ASN:</span>
+                <span id="geoAsn" class="text-cyan-400 text-right truncate max-w-[180px]">AS14061</span>
+              </div>
+              <!-- Reverse DNS / Hostname -->
+              <div class="flex justify-between items-center py-1 border-b border-slate-800/60">
+                <span class="text-slate-400">Reverse DNS:</span>
+                <span id="geoReverseDns" class="text-slate-200 text-right truncate max-w-[180px]">host-185.infra.net</span>
+              </div>
+              <!-- Timezone -->
+              <div class="flex justify-between items-center py-1">
+                <span class="text-slate-400">Timezone:</span>
+                <span id="geoTimezone" class="text-slate-300 text-right">America/New_York</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Leaflet Mini Map Container -->
+          <div id="mapWrapper" class="pt-2">
+            <div id="mapContainer"></div>
+          </div>
+        </div>
+
+        <!-- CARD 2: REPUTATION & ABUSE (AbuseIPDB) -->
+        <div class="glass-panel p-5 flex flex-col justify-between space-y-4">
+          <div class="space-y-3">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+              <div class="flex items-center space-x-2">
+                <i data-lucide="shield-x" class="w-4 h-4 text-amber-400"></i>
+                <h3 class="font-bold text-sm text-white uppercase font-mono-code">AbuseIPDB Intel</h3>
+              </div>
+              <span id="abuseProviderBadge" class="text-[10px] font-mono-code px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">
+                AbuseIPDB
+              </span>
+            </div>
+
+            <!-- Hash Not Applicable Notice -->
+            <div id="abuseNotApplicable" class="hidden py-8 text-center text-xs text-slate-400 font-mono-code">
+              <i data-lucide="info" class="w-6 h-6 mx-auto mb-2 text-slate-500"></i>
+              <span>AbuseIPDB reputation is not applicable for file hashes.</span>
+            </div>
+
+            <!-- AbuseIPDB Metrics -->
+            <div id="abuseDetails" class="space-y-3 font-mono-code text-xs">
+              
+              <!-- Abuse Score Meter -->
+              <div class="bg-slate-900/90 p-3 rounded-lg border border-slate-800 space-y-1.5">
+                <div class="flex justify-between items-center">
+                  <span class="text-slate-400 font-medium">Confidence of Abuse:</span>
+                  <span id="abuseScoreVal" class="text-base font-bold text-rose-400">88%</span>
+                </div>
+                <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
+                  <div id="abuseScoreBar" class="bg-rose-500 h-2 rounded-full transition-all duration-500" style="width: 88%"></div>
+                </div>
+              </div>
+
+              <!-- Metrics Grid -->
+              <div class="grid grid-cols-2 gap-2">
+                <div class="bg-slate-900/60 p-2.5 rounded border border-slate-800/80">
+                  <span class="text-[11px] text-slate-400 block">Total Reports</span>
+                  <span id="abuseTotalReports" class="text-sm font-bold text-white">342</span>
+                </div>
+                <div class="bg-slate-900/60 p-2.5 rounded border border-slate-800/80">
+                  <span class="text-[11px] text-slate-400 block">Distinct Users</span>
+                  <span id="abuseDistinctUsers" class="text-sm font-bold text-white">84</span>
+                </div>
+              </div>
+
+              <!-- Usage Type & Whitelist -->
+              <div class="space-y-1.5 pt-1">
+                <div class="flex justify-between items-center py-1 border-b border-slate-800/60">
+                  <span class="text-slate-400">Usage Type:</span>
+                  <span id="abuseUsageType" class="text-slate-200 text-right truncate max-w-[170px]">Data Center / Transit</span>
+                </div>
+                <div class="flex justify-between items-center py-1 border-b border-slate-800/60">
+                  <span class="text-slate-400">Domain / Host:</span>
+                  <span id="abuseDomain" class="text-slate-200 text-right truncate max-w-[170px]">network-infra.net</span>
+                </div>
+                <div class="flex justify-between items-center py-1 border-b border-slate-800/60">
+                  <span class="text-slate-400">Last Reported:</span>
+                  <span id="abuseLastReported" class="text-amber-400 text-right">4 hours ago</span>
+                </div>
+                <div class="flex justify-between items-center py-1">
+                  <span class="text-slate-400">Whitelisted:</span>
+                  <span id="abuseWhitelisted" class="text-slate-300 text-right font-semibold">No</span>
+                </div>
+              </div>
+
+              <!-- Recent Reports Snippet -->
+              <div class="pt-2 border-t border-slate-800">
+                <span class="text-[11px] text-slate-400 block mb-1">Recent Incident Reports:</span>
+                <div id="abuseReportsList" class="space-y-1.5 max-h-28 overflow-y-auto pr-1">
+                  <!-- Injected via JS -->
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <!-- CARD 3: VIRUSTOTAL DETECTION RATIO & ENGINES -->
+        <div class="glass-panel p-5 flex flex-col justify-between space-y-4">
+          <div class="space-y-3">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+              <div class="flex items-center space-x-2">
+                <i data-lucide="virus" class="w-4 h-4 text-purple-400"></i>
+                <h3 class="font-bold text-sm text-white uppercase font-mono-code">VirusTotal Detection</h3>
+              </div>
+              <span id="vtProviderBadge" class="text-[10px] font-mono-code px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">
+                VirusTotal v3
+              </span>
+            </div>
+
+            <!-- VirusTotal Metrics -->
+            <div class="space-y-3 font-mono-code text-xs">
+              
+              <!-- Detection Breakdown Bar -->
+              <div class="bg-slate-900/90 p-3 rounded-lg border border-slate-800 space-y-2">
+                <div class="flex justify-between items-center">
+                  <span class="text-slate-400">Vendor Detection Ratio:</span>
+                  <span id="vtRatioText" class="text-sm font-bold text-rose-400">54 / 70</span>
+                </div>
+                <!-- Segmented Multi-Color Progress Bar -->
+                <div class="w-full bg-slate-800 rounded-full h-2.5 flex overflow-hidden">
+                  <div id="vtMaliciousBar" class="bg-rose-500 h-full" style="width: 75%" title="Malicious"></div>
+                  <div id="vtSuspiciousBar" class="bg-amber-400 h-full" style="width: 5%" title="Suspicious"></div>
+                  <div id="vtHarmlessBar" class="bg-emerald-500 h-full" style="width: 15%" title="Harmless"></div>
+                  <div id="vtUndetectedBar" class="bg-slate-700 h-full" style="width: 5%" title="Undetected"></div>
+                </div>
+                <!-- Legend -->
+                <div class="flex justify-between text-[10px] text-slate-400 pt-0.5">
+                  <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-rose-500"></span> <span id="vtMaliciousCount">54</span> Malicious</span>
+                  <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-amber-400"></span> <span id="vtSuspiciousCount">4</span> Suspicious</span>
+                  <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-500"></span> <span id="vtHarmlessCount">3</span> Clean</span>
+                </div>
+              </div>
+
+              <!-- Threat Label & Tags -->
+              <div class="space-y-1.5">
+                <div class="flex justify-between items-center py-1 border-b border-slate-800/60">
+                  <span class="text-slate-400">Threat Label:</span>
+                  <span id="vtThreatLabel" class="text-rose-400 font-bold truncate max-w-[170px]">trojan.win32/agent</span>
+                </div>
+                <div class="flex justify-between items-center py-1 border-b border-slate-800/60">
+                  <span class="text-slate-400">Reputation Score:</span>
+                  <span id="vtReputation" class="text-white font-semibold">-85</span>
+                </div>
+                <div class="py-1">
+                  <span class="text-slate-400 block mb-1">Threat Tags:</span>
+                  <div id="vtTagsList" class="flex flex-wrap gap-1">
+                    <!-- Injected via JS -->
+                  </div>
+                </div>
+              </div>
+
+              <!-- Top Security Vendor Engine Grid -->
+              <div class="pt-2 border-t border-slate-800">
+                <span class="text-[11px] text-slate-400 block mb-1.5">Security Vendor Verdicts:</span>
+                <div id="vtEngineList" class="grid grid-cols-2 gap-1.5 max-h-32 overflow-y-auto pr-1">
+                  <!-- Injected via JS -->
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- RECENT SEARCHES / INVESTIGATION HISTORY -->
+    <section class="glass-panel p-6 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center space-x-2">
+          <i data-lucide="history" class="w-4 h-4 text-cyan-400"></i>
+          <h2 class="text-sm font-bold text-white font-mono-code uppercase tracking-wider">Investigation History (Local Storage)</h2>
+        </div>
+        <button id="clearHistoryBtn" class="text-xs text-slate-400 hover:text-rose-400 font-mono-code flex items-center gap-1 transition-colors">
+          <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+          <span>Clear History</span>
+        </button>
+      </div>
+
+      <div id="historyContainer" class="space-y-2">
+        <!-- Rendered via JS -->
+        <p id="emptyHistoryMsg" class="text-xs text-slate-500 font-mono-code text-center py-4">No recent IOC investigations yet.</p>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODAL: HEALTH & PROVIDERS STATUS -->
+  <div id="healthModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="glass-panel max-w-lg w-full p-6 space-y-4 border border-cyan-500/30">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center space-x-2">
+          <i data-lucide="server" class="w-5 h-5 text-cyan-400"></i>
+          <h3 class="font-bold text-white font-mono-code">System & Intelligence Pipelines</h3>
+        </div>
+        <button id="closeHealthModal" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div id="healthModalBody" class="space-y-3 text-xs font-mono-code text-slate-300">
+        <!-- Injected via JS -->
+        <p class="text-slate-400">Loading system status...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT APPLICATION SCRIPT -->
+  <script src="js/app.js"></script>
+</body>
+</html>

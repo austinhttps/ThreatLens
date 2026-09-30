@@ -1,0 +1,217 @@
+/* ThreatLens Custom Cyber & SOC Dark Mode Styling */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+:root {
+  --bg-primary: #07090e;
+  --bg-secondary: #0d121d;
+  --bg-card: rgba(16, 23, 38, 0.75);
+  --border-subtle: rgba(56, 189, 248, 0.12);
+  --border-glow: rgba(56, 189, 248, 0.35);
+  --accent-cyan: #38bdf8;
+  --accent-emerald: #10b981;
+  --accent-amber: #f59e0b;
+  --accent-rose: #f43f5e;
+  --accent-purple: #a855f7;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: var(--bg-primary);
+  color: #e2e8f0;
+  min-height: 100vh;
+  overflow-x: hidden;
+  background-image: 
+    radial-gradient(circle at 15% 15%, rgba(56, 189, 248, 0.05) 0%, transparent 40%),
+    radial-gradient(circle at 85% 85%, rgba(168, 85, 247, 0.04) 0%, transparent 40%),
+    linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+  background-size: 100% 100%, 100% 100%, 32px 32px, 32px 32px;
+}
+
+.font-mono-code {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Glassmorphism Card Effect */
+.glass-panel {
+  background: var(--bg-card);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.75rem;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45);
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.glass-panel:hover {
+  border-color: rgba(56, 189, 248, 0.25);
+}
+
+/* Glowing Cyber Accents */
+.glow-cyan {
+  box-shadow: 0 0 25px -5px rgba(56, 189, 248, 0.35);
+}
+
+.glow-emerald {
+  box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.35);
+}
+
+.glow-rose {
+  box-shadow: 0 0 25px -5px rgba(244, 63, 94, 0.35);
+}
+
+.glow-amber {
+  box-shadow: 0 0 25px -5px rgba(245, 158, 11, 0.35);
+}
+
+/* Radar Sweep Animation for Live Scanning */
+.radar-scanner {
+  position: relative;
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  border: 2px solid rgba(56, 189, 248, 0.3);
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.1) 0%, transparent 70%);
+}
+
+.radar-scanner::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent 0deg, transparent 270deg, rgba(56, 189, 248, 0.8) 360deg);
+  animation: radar-sweep 1.8s linear infinite;
+}
+
+@keyframes radar-sweep {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Pulse Beacon */
+.status-beacon {
+  position: relative;
+}
+
+.status-beacon::before {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: inherit;
+  opacity: 0.7;
+  animation: beacon-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes beacon-ping {
+  75%, 100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0d121d;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+/* Map Container */
+#mapContainer {
+  height: 200px;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  z-index: 1;
+}
+
+/* Leaflet Dark Theme Overrides */
+.leaflet-container {
+  background-color: #0b0f19 !important;
+}
+
+.leaflet-tile {
+  /* Standard unmodified OSM Cartography */
+}
+
+.leaflet-popup-content-wrapper {
+  background: #0f172a !important;
+  color: #f1f5f9 !important;
+  border: 1px solid rgba(56, 189, 248, 0.3) !important;
+  border-radius: 8px !important;
+}
+
+.leaflet-popup-tip {
+  background: #0f172a !important;
+}
+
+/* OpenStreetMap Compliant Attribution Styling */
+.leaflet-control-attribution {
+  background: rgba(13, 18, 29, 0.85) !important;
+  color: #94a3b8 !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 9px !important;
+  padding: 2px 6px !important;
+  border-top-left-radius: 4px;
+  border: 1px solid rgba(56, 189, 248, 0.15) !important;
+  backdrop-filter: blur(4px);
+}
+
+.leaflet-control-attribution a {
+  color: #38bdf8 !important;
+  text-decoration: none !important;
+}
+
+.leaflet-control-attribution a:hover {
+  text-decoration: underline !important;
+}
+
+/* Leaflet Dark Zoom Bar */
+.leaflet-bar {
+  border: 1px solid rgba(56, 189, 248, 0.2) !important;
+  border-radius: 6px !important;
+  overflow: hidden;
+}
+
+.leaflet-bar a {
+  background-color: #0d121d !important;
+  color: #38bdf8 !important;
+  border-bottom: 1px solid rgba(56, 189, 248, 0.15) !important;
+}
+
+.leaflet-bar a:hover {
+  background-color: #1e293b !important;
+  color: #ffffff !important;
+}
+
+/* Risk Score Gauge Circle Animation */
+.score-circle-bg {
+  stroke: #1e293b;
+}
+
+.score-circle-progress {
+  transition: stroke-dashoffset 1s ease-in-out, stroke 0.5s ease;
+  transform: rotate(-90deg);
+  transform-origin: 50% 50%;
+}
