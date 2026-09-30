@@ -72,8 +72,8 @@ flowchart TD
 
 ### 2. Clone and Install Dependencies
 ```bash
-git clone https://github.com/your-username/threatlens.git
-cd threatlens
+git clone https://github.com/austinhttps/ThreatLens.git
+cd ThreatLens
 npm install
 ```
 
